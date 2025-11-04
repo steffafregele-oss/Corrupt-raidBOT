@@ -26,7 +26,6 @@ MESSAGE = (
     "━━━━━━━━━━━━┛"
 )
 
-# OWNER ID (Replace with your Discord user ID)
 OWNER_ID = 1386627461197987841  
 
 # Initialize Bot
@@ -49,18 +48,28 @@ class RaidButtonView(View):
     def __init__(self, message: str):
         super().__init__()
         self.message = message
-
-        # Add red "Send Message" button
         send_button = Button(label="Send Message", style=discord.ButtonStyle.danger)
-        send_button.callback = self.send_messages  # Set button callback
+        send_button.callback = self.send_messages
         self.add_item(send_button)
 
     async def send_messages(self, interaction: discord.Interaction):
-        """Callback to send raid message 5 times when button is pressed."""
-        for _ in range(5):
-            await interaction.channel.send(self.message)
-            await asyncio.sleep(0.5)  # Avoid flooding by adding delay
-        await interaction.response.send_message("✅ Raid messages sent!", ephemeral=True)
+        # Try to fetch the channel
+        channel = interaction.channel
+        if channel is None:
+            await interaction.response.send_message(
+                "❌ Can't determine channel to send the message. Make sure to run this command in a server channel.",
+                ephemeral=True
+            )
+            return
+        try:
+            # Inform the user that sending will start
+            await interaction.response.send_message("⏳ Sending raid messages...", ephemeral=True)
+            for _ in range(5):
+                await channel.send(self.message)
+                await asyncio.sleep(0.5)  # avoid bot rate limit!
+            await interaction.followup.send("✅ Raid messages sent!", ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
 
 # COMMAND: /a-raid
 @bot.tree.command(name="a-raid", description="Start a raid by sending default raid messages.")
@@ -72,8 +81,6 @@ async def a_raid(interaction: discord.Interaction):
     )
     raid_embed.add_field(name="Message Preview", value=MESSAGE, inline=False)
     raid_embed.set_footer(text="Press the button to proceed.") 
-
-    # Add button view to embed
     view = RaidButtonView(message=MESSAGE)
     await interaction.response.send_message(embed=raid_embed, view=view, ephemeral=True)
 
@@ -83,7 +90,6 @@ async def a_raid(interaction: discord.Interaction):
 async def custom_raid(interaction: discord.Interaction, message: str):
     if interaction.user.id not in load_premium():
         return await interaction.response.send_message("❌ You need premium to use this command.", ephemeral=True)
-
     raid_embed = discord.Embed(
         title="Custom Raid Confirmation",
         description="Click the **Send Message** button to send your custom raid messages.",
@@ -98,7 +104,6 @@ async def custom_raid(interaction: discord.Interaction, message: str):
 async def add_premium(interaction: discord.Interaction, user: discord.User):
     if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message("❌ You do not have permission.", ephemeral=True)
-
     add_premium_user(user.id)
     await interaction.response.send_message(f"✅ {user.name} has been granted premium.", ephemeral=True)
 
@@ -107,7 +112,6 @@ async def add_premium(interaction: discord.Interaction, user: discord.User):
 async def remove_premium(interaction: discord.Interaction, user: discord.User):
     if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message("❌ You do not have permission.", ephemeral=True)
-
     removed = remove_premium_user(user.id)
     if removed:
         await interaction.response.send_message(f"✅ {user.name}'s premium access has been revoked.", ephemeral=True)
@@ -115,4 +119,4 @@ async def remove_premium(interaction: discord.Interaction, user: discord.User):
         await interaction.response.send_message(f"⚠️ {user.name} did not have premium access.", ephemeral=True)
 
 # Run the bot
-bot.run(os.getenv("DISCORD_TOKEN"))  # Use environment variable for the bot token
+bot.run(os.getenv("DISCORD_TOKEN"))
