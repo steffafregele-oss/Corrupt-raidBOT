@@ -3,6 +3,7 @@ import asyncio
 import discord
 from discord.ext import commands
 from discord import app_commands
+from discord.ui import Button, View  # Required for interactive buttons
 from server import keep_alive  # Keeps the bot alive on Render
 from premium_utils import load_premium, save_premium, add_premium_user, remove_premium_user  # Premium utilities
 
@@ -25,10 +26,10 @@ MESSAGE = (
     "━━━━━━━━━━━━┛"
 )
 
-# Set the OWNER ID (Replace this with your Discord user ID)
-OWNER_ID = 1386627461197987841
+# OWNER ID (Replace with your Discord user ID)
+OWNER_ID = 1386627461197987841  
 
-# Initialize the bot
+# Initialize Bot
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -36,53 +37,82 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # Event: Bot is ready
 @bot.event
 async def on_ready():
-    print(f"✅ Bot is online as {bot.user}")
+    print(f"✅ Bot is now running as {bot.user}")
     try:
-        await bot.tree.sync()  # Sync slash commands with Discord
+        await bot.tree.sync()
         print("✅ Slash commands synced successfully.")
     except Exception as e:
         print(f"Error syncing commands: {e}")
 
-# COMMAND: /a-raid (Spam the main message)
-@bot.tree.command(name="a-raid", description="Spam the main raid message")
+# Base Embed Button View
+class RaidButtonView(View):
+    def __init__(self, message: str):
+        super().__init__()
+        self.message = message
+
+        # Add red "Send Message" button
+        send_button = Button(label="Send Message", style=discord.ButtonStyle.danger)
+        send_button.callback = self.send_messages  # Set button callback
+        self.add_item(send_button)
+
+    async def send_messages(self, interaction: discord.Interaction):
+        """Callback to send raid message 5 times when button is pressed."""
+        for _ in range(5):
+            await interaction.channel.send(self.message)
+            await asyncio.sleep(0.5)  # Avoid flooding by adding delay
+        await interaction.response.send_message("✅ Raid messages sent!", ephemeral=True)
+
+# COMMAND: /a-raid
+@bot.tree.command(name="a-raid", description="Start a raid by sending default raid messages.")
 async def a_raid(interaction: discord.Interaction):
-    await interaction.response.send_message("⚡ Starting raid...", ephemeral=True)
-    for _ in range(5):  # Sends message 5 times
-        await interaction.channel.send(MESSAGE)
-        await asyncio.sleep(0.2)
+    raid_embed = discord.Embed(
+        title="Raid Confirmation",
+        description="Click the **Send Message** button below to send the raid messages.",
+        color=discord.Color.red(),
+    )
+    raid_embed.add_field(name="Message Preview", value=MESSAGE, inline=False)
+    raid_embed.set_footer(text="Press the button to proceed.") 
 
-# COMMAND: /custom-raid (For Premium Users Only)
-@bot.tree.command(name="custom-raid", description="Send a custom raid message (Premium only)")
+    # Add button view to embed
+    view = RaidButtonView(message=MESSAGE)
+    await interaction.response.send_message(embed=raid_embed, view=view, ephemeral=True)
+
+# COMMAND: /custom-raid
+@bot.tree.command(name="custom-raid", description="Send a custom raid message with a button.")
+@app_commands.describe(message="The custom message to send.")
 async def custom_raid(interaction: discord.Interaction, message: str):
-    if interaction.user.id not in load_premium():  # Check if user is in premium list
-        await interaction.response.send_message("💎 Only premium users can use this command.", ephemeral=True)
-        return
-    await interaction.response.send_message("⚡ Sending custom message...", ephemeral=True)
-    for _ in range(5):
-        await interaction.channel.send(message)
-        await asyncio.sleep(0.2)
+    if interaction.user.id not in load_premium():
+        return await interaction.response.send_message("❌ You need premium to use this command.", ephemeral=True)
 
-# COMMAND: /x-add-premium (Owner Only Command to Add Premium User)
-@bot.tree.command(name="x-add-premium", description="Add a user to premium users")
-@app_commands.describe(user="The user to add to premium")
+    raid_embed = discord.Embed(
+        title="Custom Raid Confirmation",
+        description="Click the **Send Message** button to send your custom raid messages.",
+        color=discord.Color.blue(),
+    )
+    raid_embed.add_field(name="Custom Message Preview", value=message, inline=False)
+    view = RaidButtonView(message=message)
+    await interaction.response.send_message(embed=raid_embed, view=view, ephemeral=True)
+
+# COMMAND: /x-add-premium
+@bot.tree.command(name="x-add-premium", description="Grant premium access to a user.")
 async def add_premium(interaction: discord.Interaction, user: discord.User):
     if interaction.user.id != OWNER_ID:
-        await interaction.response.send_message("❌ You don’t have permission to perform this action.", ephemeral=True)
-        return
-    add_premium_user(user.id)
-    await interaction.response.send_message(f"✅ {user.mention} added to premium users.", ephemeral=True)
+        return await interaction.response.send_message("❌ You do not have permission.", ephemeral=True)
 
-# COMMAND: /x-remove-premium (Owner Only Command to Remove Premium User)
-@bot.tree.command(name="x-remove-premium", description="Remove a user from premium users")
-@app_commands.describe(user="The user to remove from premium")
+    add_premium_user(user.id)
+    await interaction.response.send_message(f"✅ {user.name} has been granted premium.", ephemeral=True)
+
+# COMMAND: /x-remove-premium
+@bot.tree.command(name="x-remove-premium", description="Revoke premium access from a user.")
 async def remove_premium(interaction: discord.Interaction, user: discord.User):
     if interaction.user.id != OWNER_ID:
-        await interaction.response.send_message("❌ You don’t have permission to perform this action.", ephemeral=True)
-        return
-    if remove_premium_user(user.id):
-        await interaction.response.send_message(f"✅ {user.mention} removed from premium users.", ephemeral=True)
-    else:
-        await interaction.response.send_message(f"⚠️ {user.mention} is not in the premium list.", ephemeral=True)
+        return await interaction.response.send_message("❌ You do not have permission.", ephemeral=True)
 
-# Run the bot using the token from Render's environment variables
-bot.run(os.getenv("DISCORD_TOKEN"))
+    removed = remove_premium_user(user.id)
+    if removed:
+        await interaction.response.send_message(f"✅ {user.name}'s premium access has been revoked.", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"⚠️ {user.name} did not have premium access.", ephemeral=True)
+
+# Run the bot
+bot.run(os.getenv("DISCORD_TOKEN"))  # Use environment variable for the bot token
