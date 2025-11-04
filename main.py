@@ -1,3 +1,8 @@
+from server import keep_alive  # import server
+
+# --- START SERVER ---
+keep_alive()
+# -------------------
 import os
 import json
 import asyncio
