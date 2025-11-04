@@ -4,29 +4,25 @@ import json
 PREMIUM_FILE = "premium.json"
 
 def load_premium():
-    """Load the list of premium users."""
     if not os.path.exists(PREMIUM_FILE):
         return []
     with open(PREMIUM_FILE, "r") as f:
         return json.load(f)
 
-def save_premium(data):
-    """Save the premium list."""
+def save_premium(users):
     with open(PREMIUM_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+        json.dump(users, f, indent=2)
 
 def add_premium_user(user_id):
-    """Add a user to the premium list."""
-    users = load_premium()
-    if user_id not in users:
-        users.append(user_id)
-        save_premium(users)
+    premium_users = load_premium()
+    if user_id not in premium_users:
+        premium_users.append(user_id)
+        save_premium(premium_users)
 
 def remove_premium_user(user_id):
-    """Remove a user from the premium list."""
-    users = load_premium()
-    if user_id in users:
-        users.remove(user_id)
-        save_premium(users)
+    premium_users = load_premium()
+    if user_id in premium_users:
+        premium_users.remove(user_id)
+        save_premium(premium_users)
         return True
     return False
