@@ -68,13 +68,15 @@ OWNER_ID = 1386627461197987841
 async def on_ready():
     print(f"{Fore.CYAN}Logged in as {bot.user}{Fore.RESET}")
     try:
-        synced = await bot.tree.sync()
-        print(f"{Fore.CYAN}Synced {len(synced)} commands.")
+        synced = await bot.tree.sync(guild=None)  # 🔥 comenzi globale (vizibile și în DM)
+        print(f"{Fore.CYAN}Synced {len(synced)} global commands.")
     except Exception as e:
         print(f"Could not sync commands: {e}")
 
 # --- COMMANDS ---
+
 @bot.tree.command(name="a-raid", description="Spam a special guild raid message.")
+@app_commands.allowed_contexts(guilds=True, dms=True)  # ✅ și în DM
 async def araid(interaction: discord.Interaction):
     await interaction.response.send_message("Raiding now...", ephemeral=True)
     for _ in range(5):
@@ -83,6 +85,7 @@ async def araid(interaction: discord.Interaction):
 
 @bot.tree.command(name="custom-raid", description="Premium Raid: Send a DM to a user.")
 @app_commands.describe(user="The user to send DM", message="Your custom message")
+@app_commands.allowed_contexts(guilds=True, dms=True)  # ✅ comanda merge și în DM
 async def custom_raid(interaction: discord.Interaction, user: discord.User, message: str):
     premium_users = load_premium_users()
     if interaction.user.id not in premium_users:
@@ -90,13 +93,14 @@ async def custom_raid(interaction: discord.Interaction, user: discord.User, mess
         return
 
     try:
-        await user.send(message)  # trimite DM către userul selectat
+        await user.send(message)
         await interaction.response.send_message(f"✅ Message sent to {user.mention}!", ephemeral=True)
     except discord.Forbidden:
         await interaction.response.send_message(f"❌ Could not send DM to {user.mention}.", ephemeral=True)
 
 @bot.tree.command(name="x-add-premium", description="Grant premium access to a user. (owner only)")
 @app_commands.describe(user="The user to grant premium access to")
+@app_commands.allowed_contexts(guilds=True, dms=True)
 async def add_premium(interaction: discord.Interaction, user: discord.User):
     if interaction.user.id != OWNER_ID:
         await interaction.response.send_message("❌ You don't have permission.", ephemeral=True)
@@ -106,6 +110,7 @@ async def add_premium(interaction: discord.Interaction, user: discord.User):
 
 @bot.tree.command(name="x-rem-premium", description="Remove premium access from a user. (owner only)")
 @app_commands.describe(user="The user to remove premium access from")
+@app_commands.allowed_contexts(guilds=True, dms=True)
 async def rem_premium(interaction: discord.Interaction, user: discord.User):
     if interaction.user.id != OWNER_ID:
         await interaction.response.send_message("❌ You don't have permission.", ephemeral=True)
@@ -118,7 +123,7 @@ async def rem_premium(interaction: discord.Interaction, user: discord.User):
 
 # --- RUN BOT ---
 if __name__ == "__main__":
-    TOKEN = os.getenv("DISCORD_TOKEN")  # asigură-te că ai pus tokenul în Environment Variables
+    TOKEN = os.getenv("DISCORD_TOKEN")  # asigură-te că e setat în Environment Variables
     if TOKEN:
         bot.run(TOKEN)
     else:
