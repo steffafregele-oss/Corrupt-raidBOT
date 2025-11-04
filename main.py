@@ -5,8 +5,13 @@ from colorama import Fore, init
 import discord
 from discord.ext import commands
 from discord import app_commands
+from server import keep_alive  # import server
 
 init(autoreset=True)
+
+# --- START SERVER ---
+keep_alive()
+# -------------------
 
 PREMIUM_FILE = "premium.json"
 
