@@ -5,7 +5,7 @@ from colorama import Fore, init
 import discord
 from discord.ext import commands
 from discord import app_commands
-from server import keep_alive  # aici apelăm serverul fără circular import
+from server import keep_alive  # Start Flask server
 
 init(autoreset=True)
 
@@ -39,7 +39,6 @@ def remove_premium_user(user_id: int) -> bool:
         return True
     return False
 
-# Mesaj de raid
 MESSAGE = (
     "**- 🦴 3 OP GENERATORS,\n"
     "- 🌐 HAVE OWN SITE,\n"
@@ -70,7 +69,6 @@ async def on_ready():
     except Exception as e:
         print(f"Could not sync commands: {e}")
 
-# Comenzi bot
 @bot.tree.command(name="a-raid", description="Spam a special guild raid message.")
 async def araid(interaction: discord.Interaction):
     await interaction.response.send_message("Raiding now...", ephemeral=True)
