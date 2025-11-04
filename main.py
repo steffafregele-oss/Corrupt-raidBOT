@@ -190,4 +190,4 @@ async def on_ready():
     except Exception as e:
         print(f"❌ Failed to update About Me: {e}")
 
-bot.run("YOUR_BOT_TOKEN"))
+bot.run("YOUR_BOT_TOKEN")
