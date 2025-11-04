@@ -5,13 +5,8 @@ from colorama import Fore, init
 import discord
 from discord.ext import commands
 from discord import app_commands
-from server import keep_alive  # Start Flask server
 
 init(autoreset=True)
-
-# --- START SERVER ---
-keep_alive()
-# -------------------
 
 PREMIUM_FILE = "premium.json"
 
@@ -52,14 +47,18 @@ MESSAGE = (
     "━━━━━━━━━━━━┓\n"
     " https://discord.gg/JgckfuuJg\n"
     "━━━━━━━━━━━━┛\n"
-    "@everyone"
 )
 
+OWNER_ID = 1386627461197987841  # Pune aici ID-ul tău
+
+# ------------------- Bot setup -------------------
 intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-OWNER_ID = 1386627461197987841
-
+# ------------------- Events -------------------
 @bot.event
 async def on_ready():
     print(f"{Fore.CYAN}Logged in as {bot.user}{Fore.RESET}")
@@ -69,11 +68,17 @@ async def on_ready():
     except Exception as e:
         print(f"Could not sync commands: {e}")
 
+# ------------------- Slash Commands -------------------
 @bot.tree.command(name="a-raid", description="Spam a special guild raid message.")
 async def araid(interaction: discord.Interaction):
     await interaction.response.send_message("Raiding now...", ephemeral=True)
     for _ in range(5):
         await asyncio.sleep(0.2)
+        # trimite mesaj și în DM
+        try:
+            await interaction.user.send(MESSAGE)
+        except:
+            pass
         await interaction.followup.send(MESSAGE)
 
 @bot.tree.command(name="custom-raid", description="Premium Raid with your own message. (premium only!)")
@@ -83,10 +88,16 @@ async def custom_raid(interaction: discord.Interaction, message: str = None):
     if interaction.user.id not in premium_users:
         await interaction.response.send_message("💎 This command is only for premium users.", ephemeral=True)
         return
+
     spam_message = message if message else "Custom Raid!"
     await interaction.response.send_message(f"💎 SPAM TEXT:\n```{spam_message}```", ephemeral=True)
+
     for _ in range(5):
         await asyncio.sleep(0.2)
+        try:
+            await interaction.user.send(spam_message)
+        except:
+            pass
         await interaction.followup.send(spam_message)
 
 @bot.tree.command(name="x-add-premium", description="Grant premium access to a user. (owner only)")
@@ -110,6 +121,7 @@ async def rem_premium(interaction: discord.Interaction, user: discord.User):
     else:
         await interaction.response.send_message(f"⚠️ {user.mention} was not premium.", ephemeral=True)
 
+# ------------------- Run Bot -------------------
 if __name__ == "__main__":
     TOKEN = os.getenv("DISCORD_TOKEN")
     if TOKEN:
