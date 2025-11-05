@@ -1,3 +1,10 @@
+# Discord Raid Bot Implementation
+
+## Requirement Summary
+This document outlines the implementation of a Discord bot designed to facilitate raid messages through slash commands. The bot is intended to be deployed on Render and should function as an external application within the Discord Developer Portal. It includes features for sending predefined and custom messages, as well as managing premium user access.
+
+## Code Generated
+```python
 import os
 import asyncio
 import discord
